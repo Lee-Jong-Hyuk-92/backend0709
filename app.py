@@ -1,15 +1,15 @@
-# app.py
+# C:\Users\sptzk\Desktop\backend0709-1\app.py
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
 
 from config import DevelopmentConfig
-from models.model import db, MongoDBClient
+from models.model import db, MongoDBClient # MongoDBClient 임포트 확인
 
 # Blueprint 모듈
 from routes.auth_routes import auth_bp
 from routes.image_routes import image_bp
-from routes.upload_routes import upload_bp  # ✅ 새로 만든 라우트
+from routes.upload_routes import upload_bp
 
 # Flask 애플리케이션 초기화
 app = Flask(__name__)
@@ -28,6 +28,7 @@ CORS(app)
 db.init_app(app)
 
 # MongoDB 클라이언트 인스턴스를 앱 컨텍스트에 등록
+# app.config에서 MONGO_URI와 MONGO_DB_NAME을 가져와서 초기화합니다.
 mongo_client = MongoDBClient(
     uri=app.config['MONGO_URI'],
     db_name=app.config['MONGO_DB_NAME']
@@ -42,8 +43,8 @@ with app.app_context():
 
 # 라우트 등록
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(image_bp)  # /upload_image 등
-app.register_blueprint(upload_bp,url_prefix='/api')  # /upload_masked_image
+app.register_blueprint(image_bp) 
+app.register_blueprint(upload_bp, url_prefix='/api')
 
 @app.route('/')
 def index():
@@ -51,7 +52,10 @@ def index():
 
 @app.errorhandler(500)
 def internal_error(error):
-    return jsonify({"error": "서버 내부 오류 발생", "details": str(error)}), 500
+    # 에러 발생 시 디테일한 정보를 로깅하고 사용자에게는 일반적인 메시지 전달
+    print(f"서버 내부 오류 발생: {str(error)}")
+    return jsonify({"error": "서버 내부 오류 발생", "details": "자세한 내용은 서버 로그를 확인해주세요."}), 500
 
 if __name__ == '__main__':
+    # debug=True는 개발 환경에서만 사용하고, 배포 시에는 False로 설정하세요.
     app.run(debug=True, host='0.0.0.0', port=5000)
