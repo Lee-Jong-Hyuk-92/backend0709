@@ -1,4 +1,4 @@
-# C:\Users\sptzk\Desktop\backend0709-1\app.py
+import sys
 import os
 from flask import Flask, jsonify
 from flask_cors import CORS
@@ -6,7 +6,7 @@ from flask_cors import CORS
 from config import DevelopmentConfig
 from models.model import db, MongoDBClient # MongoDBClient 임포트 확인
 
-# Blueprint 모듈
+# Blueprint 모듈 임포트
 from routes.auth_routes import auth_bp
 from routes.image_routes import image_bp
 from routes.upload_routes import upload_bp
@@ -37,13 +37,16 @@ mongo_client = MongoDBClient(
 app.extensions = getattr(app, 'extensions', {})
 app.extensions['mongo_client'] = mongo_client
 
-# SQL 테이블 생성
+# SQL 테이블 생성 (앱 컨텍스트 내에서 실행)
 with app.app_context():
     db.create_all()
 
 # 라우트 등록
+# auth_bp에 정의된 모든 라우트는 '/api/auth' 접두사를 가집니다.
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
-app.register_blueprint(image_bp) 
+# image_bp는 별도의 접두사 없이 등록됩니다.
+app.register_blueprint(image_bp)
+# upload_bp에 정의된 모든 라우트는 '/api' 접두사를 가집니다.
 app.register_blueprint(upload_bp, url_prefix='/api')
 
 @app.route('/')
@@ -58,4 +61,5 @@ def internal_error(error):
 
 if __name__ == '__main__':
     # debug=True는 개발 환경에서만 사용하고, 배포 시에는 False로 설정하세요.
+    # host='0.0.0.0'은 외부 IP에서의 접속을 허용합니다.
     app.run(debug=True, host='0.0.0.0', port=5000)
