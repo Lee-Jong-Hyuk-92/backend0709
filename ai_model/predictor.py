@@ -18,7 +18,7 @@ model = smp.UnetPlusPlus(
     classes=n_labels,
     activation=None
 )
-model_path = os.path.join(os.path.dirname(__file__), 'mask_upload_images_caries.pt')
+model_path = os.path.join(os.path.dirname(__file__), 'disease_model_saved_weight.pt')
 model.load_state_dict(torch.load(model_path, map_location=device))
 model.to(device)
 model.eval()
