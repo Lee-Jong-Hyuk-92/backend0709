@@ -10,6 +10,7 @@ from models.model import db, MongoDBClient # MongoDBClient 임포트 확인
 from routes.auth_routes import auth_bp
 from routes.image_routes import image_bp
 from routes.upload_routes import upload_bp
+from routes.inference_routes import inference_bp   # ✅ 추가
 
 # Flask 애플리케이션 초기화
 app = Flask(__name__)
@@ -48,6 +49,8 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(image_bp)
 # upload_bp에 정의된 모든 라우트는 '/api' 접두사를 가집니다.
 app.register_blueprint(upload_bp, url_prefix='/api')
+
+app.register_blueprint(inference_bp, url_prefix='/api')
 
 @app.route('/')
 def index():
