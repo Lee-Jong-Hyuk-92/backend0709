@@ -1,61 +1,76 @@
 import bcrypt
 from flask import Blueprint, request, jsonify
 from models.model import db, User, Doctor
+# import time # ✅ time 모듈 임포트 제거 (더 이상 필요 없음)
 
 auth_bp = Blueprint('auth', __name__)
 
-# ✅ 아이디 중복 체크 (의사/환자 분리)
+# ✅ 아이디 중복 체크 (의사/환자 통합 검사)
 @auth_bp.route('/check-username', methods=['GET'])
 def check_username_duplicate():
-    username = request.args.get('username')
-    role = request.args.get('role', 'P')  # 기본값: 환자
+    register_id = request.args.get('username')
 
-    if not username:
+    if not register_id:
         return jsonify({"message": "Username parameter is required"}), 400
 
-    if role == 'D':
-        user = Doctor.query.filter_by(username=username).first()
-    else:
-        user = User.query.filter_by(username=username).first()
+    # User 테이블에서 register_id 중복 확인
+    user_exists = User.query.filter_by(register_id=register_id).first()
+    # Doctor 테이블에서 register_id 중복 확인
+    doctor_exists = Doctor.query.filter_by(register_id=register_id).first()
 
-    if user:
+    if user_exists or doctor_exists:
         return jsonify({"exists": True, "message": "이미 사용 중인 아이디입니다."}), 200
     return jsonify({"exists": False, "message": "사용 가능한 아이디입니다."}), 200
 
 
-# ✅ 회원가입
+# ✅ 회원가입 (통합 아이디 중복 검사 및 DB 자동 ID 생성)
 @auth_bp.route('/register', methods=['POST'])
 def signup():
     data = request.get_json()
-    role = data.get('role', 'P')  # 기본값: 환자
+    role = data.get('role', 'P')
 
-    username = data.get('username')
+    register_id = data.get('username')
     password = data.get('password')
     name = data.get('name')
     gender = data.get('gender')
     birth = data.get('birth')
     phone = data.get('phone')
-    address = data.get('address', '')
 
-    if not all([username, password, name, gender, birth, phone]):
+    if not all([register_id, password, name, gender, birth, phone]):
         return jsonify({"message": "모든 필드를 입력해야 합니다."}), 400
 
-    Model = Doctor if role == 'D' else User
-    existing_user = Model.query.filter_by(username=username).first()
-    if existing_user:
-        return jsonify({"message": "이미 사용 중인 아이디입니다."}), 409
+    # User 테이블과 Doctor 테이블 모두에서 register_id 중복 확인
+    user_exists = User.query.filter_by(register_id=register_id).first()
+    doctor_exists = Doctor.query.filter_by(register_id=register_id).first()
+
+    if user_exists or doctor_exists:
+        return jsonify({"message": "이미 사용 중인 아이디입니다. 다른 아이디를 사용해주세요."}), 409
 
     hashed_pw = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-    new_user = Model(
-        username=username,
-        password=hashed_pw.decode('utf-8'),
-        name=name,
-        gender=gender,
-        birth=birth,
-        phone=phone,
-        address=address,
-        role=role  # 'P' 또는 'D'
-    )
+
+    # ✅ 수동 ID 생성 로직 제거, DB의 AUTO_INCREMENT에 맡김
+    if role == 'D':
+        new_user = Doctor(
+            # doctor_id는 DB에서 자동 생성
+            register_id=register_id,
+            password=hashed_pw.decode('utf-8'),
+            name=name,
+            gender=gender,
+            birth=birth,
+            phone=phone,
+            role=role
+        )
+    else: # role == 'P'
+        new_user = User(
+            # user_id는 DB에서 자동 생성
+            register_id=register_id,
+            password=hashed_pw.decode('utf-8'),
+            name=name,
+            gender=gender,
+            birth=birth,
+            phone=phone,
+            role=role
+        )
 
     try:
         db.session.add(new_user)
@@ -66,29 +81,29 @@ def signup():
         return jsonify({"message": "Error registering user", "error": str(e)}), 500
 
 
-# ✅ 로그인 (role 기반 분기 + 응답에 role 포함)
+# ✅ 로그인
 @auth_bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     role = data.get('role', 'P')
-    username = data.get('username')
+    register_id = data.get('register_id')
     password = data.get('password')
 
     Model = Doctor if role == 'D' else User
-    user = Model.query.filter_by(username=username).first()
+    user = Model.query.filter_by(register_id=register_id).first()
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
+        user_id_to_return = user.doctor_id if role == 'D' else user.user_id
         return jsonify({
             "message": "Login successful",
             "user": {
-                "id": user.id,
-                "username": user.username,
+                "id": user_id_to_return,
+                "register_id": user.register_id,
                 "name": user.name,
                 "gender": user.gender,
                 "birth": user.birth,
                 "phone": user.phone,
-                "address": user.address,
-                "role": user.role  # ✅ Flutter 분기용
+                "role": user.role
             }
         }), 200
 
@@ -100,14 +115,14 @@ def login():
 def delete_account():
     data = request.get_json()
     role = data.get('role', 'P')
-    username = data.get('username')
+    register_id = data.get('username')
     password = data.get('password')
 
-    if not username or not password:
+    if not register_id or not password:
         return jsonify({"message": "아이디와 비밀번호를 모두 입력해주세요."}), 400
 
     Model = Doctor if role == 'D' else User
-    user = Model.query.filter_by(username=username).first()
+    user = Model.query.filter_by(register_id=register_id).first()
 
     if not user or not bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
         return jsonify({"message": "아이디 또는 비밀번호가 잘못되었습니다."}), 401
