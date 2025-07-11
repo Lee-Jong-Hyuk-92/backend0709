@@ -86,8 +86,8 @@ def upload_masked_image():
         mongo_client.insert_result({
             'user_id': user_id,
             'original_image_filename': original_filename,
-            'original_image_path': original_path,
-            'processed_image_path': masked_path,
+            'original_image_path': f"/uploads/camera/{base_name}",
+            'processed_image_path': f"/processed_uploads/camera/{base_name}",
             'inference_result': {
                 'message': '마스크 생성 완료',
                 'lesion_points': lesion_points,  # 기존 병변 좌표
@@ -101,8 +101,8 @@ def upload_masked_image():
 
         return jsonify({
             'message': '이미지 업로드 및 마스킹 성공',
-            'original_image_path': original_path,
-            'masked_image_path': masked_path,
+            'original_image_path': f"/uploads/camera/{base_name}",
+            'processed_image_path': f"/processed_uploads/camera/{base_name}",
             'mask_url': mask_url,
             'inference_result': {
                 'message': '마스크 이미지가 성공적으로 생성되었습니다.',

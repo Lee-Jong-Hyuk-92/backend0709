@@ -49,6 +49,9 @@ def perform_inference(image_path, processed_output_dir):
 
         print(f"📷 처리된 이미지 저장 완료: {processed_full_path}")
 
+        # 상대 경로 반환용
+        relative_processed_path = f"/processed_uploads/camera/{processed_filename}"
+
         # 결과 파싱
         inference_details = []
         for r in results:
@@ -81,7 +84,7 @@ def perform_inference(image_path, processed_output_dir):
         return {
             "prediction": "Objects detected" if inference_details else "No objects detected",
             "details": inference_details,
-            "processed_image_path": processed_full_path
+            "processed_image_path": relative_processed_path  # ✅ URL 접근 가능한 경로로 변경
         }
 
     except Exception as e:
