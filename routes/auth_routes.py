@@ -93,22 +93,27 @@ def login():
     user = Model.query.filter_by(register_id=register_id).first()
 
     if user and bcrypt.checkpw(password.encode('utf-8'), user.password.encode('utf-8')):
-        user_id_to_return = user.doctor_id if role == 'D' else user.user_id
+        # ✅ doctor와 user 각각 ID 필드 명시적으로 분리하여 리턴
+        user_data = {
+            "register_id": user.register_id,
+            "name": user.name,
+            "gender": user.gender,
+            "birth": user.birth,
+            "phone": user.phone,
+            "role": user.role
+        }
+
+        if role == 'D':
+            user_data["doctor_id"] = user.doctor_id
+        else:
+            user_data["user_id"] = user.user_id
+
         return jsonify({
             "message": "Login successful",
-            "user": {
-                "id": user_id_to_return,
-                "register_id": user.register_id,
-                "name": user.name,
-                "gender": user.gender,
-                "birth": user.birth,
-                "phone": user.phone,
-                "role": user.role
-            }
+            "user": user_data
         }), 200
 
     return jsonify({"message": "Invalid credentials"}), 401
-
 
 # ✅ 회원 탈퇴
 @auth_bp.route('/delete_account', methods=['DELETE'])
