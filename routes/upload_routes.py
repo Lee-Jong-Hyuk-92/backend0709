@@ -14,27 +14,26 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 
-@upload_bp.route('/upload', methods=['POST'])  # ✅ Flutter가 요청하는 경로 추가
+@upload_bp.route('/upload_image', methods=['POST'])
+def upload_image_from_flutter():
+    return upload_masked_image()
+
+@upload_bp.route('/upload', methods=['POST'])
 def upload_plain_image():
-    """
-    Flutter 앱이 이미지만 보내는 경우 처리하는 엔드포인트.
-    내부적으로 /upload_masked_image 로직 재사용.
-    """
-    return upload_masked_image()  # 동일 처리
+    return upload_masked_image()
 
 
 @upload_bp.route('/upload_masked_image', methods=['POST'])
 def upload_masked_image():
-    print("📅 [요청 수신] /upload_masked_image")
+    print("📅 [요청 수신] /upload_masked_image (기존 마스킹 이미지 업로드 로직)")
 
     if 'file' not in request.files:
-        print("❌ [에러] 파일 누락")
+        print("❌ [에러] 파일 누락: 'file' 필드가 없습니다.")
         return jsonify({'error': '이미지 파일이 필요합니다.'}), 400
 
     file = request.files['file']
     user_id = request.form.get('user_id', 'anonymous')
 
-    # ✅ YOLO 결과 JSON (선택사항)
     yolo_results_json_str = request.form.get('yolo_results_json')
     yolo_inference_data = []
 
@@ -54,32 +53,27 @@ def upload_masked_image():
         return jsonify({'error': '허용되지 않는 파일 형식입니다.'}), 400
 
     try:
-        # 디렉토리 준비
         upload_dir = os.path.join(current_app.config['UPLOAD_FOLDER'], 'camera')
         processed_dir = os.path.join(current_app.config['PROCESSED_UPLOAD_FOLDER'], 'camera')
         os.makedirs(upload_dir, exist_ok=True)
         os.makedirs(processed_dir, exist_ok=True)
 
-        # 파일 저장
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
         original_filename = secure_filename(file.filename)
-        base_name = f"{user_id}_{timestamp}_{original_filename}"
+        base_name = f"processed_{timestamp}_{user_id}_{original_filename}"
         original_path = os.path.join(upload_dir, base_name)
         file.save(original_path)
         print(f"✅ 원본 이미지 저장 완료: {original_path}")
 
-        # AI 추론
         image = Image.open(original_path).convert("RGB")
         print("🧠 [AI 추론 시작]")
         masked_image, lesion_points, backend_model_confidence, backend_model_name = predict_overlayed_image(image)
         print("✅ [AI 추론 완료] 모델:", backend_model_name)
 
-        # 결과 저장
         masked_path = os.path.join(processed_dir, base_name)
         masked_image.save(masked_path)
         print(f"✅ 마스크 이미지 저장 완료: {masked_path}")
 
-        # MongoDB 저장
         mongo_client = MongoDBClient()
         mongo_client.insert_result({
             'user_id': user_id,
@@ -99,15 +93,13 @@ def upload_masked_image():
 
         return jsonify({
             'message': '이미지 업로드 및 마스킹 성공',
-            'original_image_path': f"/uploads/camera/{base_name}",
-            'processed_image_path': f"/processed_uploads/camera/{base_name}",
-            'mask_url': f"/processed_uploads/camera/{base_name}",
-            'inference_result': {
-                'message': '마스크 이미지가 성공적으로 생성되었습니다.',
-                'lesion_points': lesion_points,
+            'image_url': f"/processed_uploads/camera/{base_name}",
+            'inference_data': {
+                'details': lesion_points,
+                'prediction': 'Objects detected',
                 'backend_model_confidence': backend_model_confidence,
-                'yolo_detections': yolo_inference_data,
-                'model_used': backend_model_name
+                'model_used': backend_model_name,
+                'yolo_detections': yolo_inference_data
             }
         }), 200
 
