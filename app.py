@@ -12,6 +12,7 @@ from routes.image_routes import image_bp
 from routes.upload_routes import upload_bp
 from routes.inference_routes import inference_bp   # ✅ 추가
 from routes.static_routes import static_bp  # ✅ 추가
+from routes.application_routes import application_bp
 
 # Flask 애플리케이션 초기화
 app = Flask(__name__)
@@ -54,6 +55,8 @@ app.register_blueprint(upload_bp, url_prefix='/api')
 app.register_blueprint(inference_bp, url_prefix='/api')
 
 app.register_blueprint(static_bp)  # ✅ 정적 이미지 라우트 등록
+
+app.register_blueprint(application_bp, url_prefix='/api')
 
 @app.route('/')
 def index():
