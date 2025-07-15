@@ -13,7 +13,6 @@ upload_bp = Blueprint('upload', __name__)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
-
 @upload_bp.route('/upload_image', methods=['POST'])
 def upload_image_from_flutter():
     return upload_masked_image()
@@ -21,7 +20,6 @@ def upload_image_from_flutter():
 @upload_bp.route('/upload', methods=['POST'])
 def upload_plain_image():
     return upload_masked_image()
-
 
 @upload_bp.route('/upload_masked_image', methods=['POST'])
 def upload_masked_image():
@@ -70,6 +68,9 @@ def upload_masked_image():
         masked_image, lesion_points, backend_model_confidence, backend_model_name = predict_overlayed_image(image)
         print("✅ [AI 추론 완료] 모델:", backend_model_name)
 
+        # 클래스 이름 추가 (예: YOLOv11은 Dental Plaque라고 가정)
+        predicted_class_name = "Dental Plaque"
+
         masked_path = os.path.join(processed_dir, base_name)
         masked_image.save(masked_path)
         print(f"✅ 마스크 이미지 저장 완료: {masked_path}")
@@ -83,9 +84,10 @@ def upload_masked_image():
             'inference_result': {
                 'message': '마스크 생성 완료',
                 'lesion_points': lesion_points,
-                'backend_model_confidence': backend_model_confidence,
                 'yolo_detections': yolo_inference_data,
-                'model_used': backend_model_name
+                'confidence': backend_model_confidence,
+                'model_used': backend_model_name,
+                'class_name': predicted_class_name
             },
             'timestamp': datetime.now()
         })
@@ -93,13 +95,13 @@ def upload_masked_image():
 
         return jsonify({
             'message': '이미지 업로드 및 마스킹 성공',
+            'original_image_path': f"/uploads/camera/{base_name}",
             'image_url': f"/processed_uploads/camera/{base_name}",
             'inference_data': {
-                'details': lesion_points,
-                'prediction': 'Objects detected',
-                'backend_model_confidence': backend_model_confidence,
+                'confidence': backend_model_confidence,
                 'model_used': backend_model_name,
-                'yolo_detections': yolo_inference_data
+                'lesion_points': lesion_points,
+                'class_name': predicted_class_name
             }
         }), 200
 
