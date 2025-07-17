@@ -11,9 +11,7 @@ _model = None
 
 try:
     _model = YOLO(MODEL_PATH)
-    print(f"✅ YOLOv11-seg 모델이 성공적으로 로드되었습니다: {MODEL_PATH}")
 except Exception as e:
-    print(f"❌ YOLO 모델 로딩 실패: {e}")
     _model = None
 
 # === [AI 추론 함수] =================================

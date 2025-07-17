@@ -13,6 +13,7 @@ upload_bp = Blueprint('upload', __name__)
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
+
 @upload_bp.route('/upload_image', methods=['POST'])
 def upload_image_from_flutter():
     return upload_masked_image()
@@ -21,9 +22,9 @@ def upload_image_from_flutter():
 def upload_plain_image():
     return upload_masked_image()
 
+
 @upload_bp.route('/upload_masked_image', methods=['POST'])
 def upload_masked_image():
-    print("📅 [요청 수신] /upload_masked_image (기존 마스킹 이미지 업로드 로직)")
 
     if 'file' not in request.files:
         print("❌ [에러] 파일 누락: 'file' 필드가 없습니다.")
@@ -38,9 +39,7 @@ def upload_masked_image():
     if yolo_results_json_str:
         try:
             yolo_inference_data = json.loads(yolo_results_json_str)
-            print(f"✅ YOLO 결과 수신: {len(yolo_inference_data)}개 감지")
         except json.JSONDecodeError as e:
-            print(f"❌ [에러] YOLO 결과 JSON 파싱 오류: {e}")
             return jsonify({'error': f'YOLO 결과 JSON 형식이 올바르지 않습니다: {e}'}), 400
     else:
         print("ℹ️ YOLO 결과 없이 진행")
@@ -61,19 +60,11 @@ def upload_masked_image():
         base_name = f"processed_{timestamp}_{user_id}_{original_filename}"
         original_path = os.path.join(upload_dir, base_name)
         file.save(original_path)
-        print(f"✅ 원본 이미지 저장 완료: {original_path}")
 
         image = Image.open(original_path).convert("RGB")
-        print("🧠 [AI 추론 시작]")
         masked_image, lesion_points, backend_model_confidence, backend_model_name = predict_overlayed_image(image)
-        print("✅ [AI 추론 완료] 모델:", backend_model_name)
-
-        # 클래스 이름 추가 (예: YOLOv11은 Dental Plaque라고 가정)
-        predicted_class_name = "Dental Plaque"
-
         masked_path = os.path.join(processed_dir, base_name)
         masked_image.save(masked_path)
-        print(f"✅ 마스크 이미지 저장 완료: {masked_path}")
 
         mongo_client = MongoDBClient()
         mongo_client.insert_result({
@@ -84,27 +75,25 @@ def upload_masked_image():
             'inference_result': {
                 'message': '마스크 생성 완료',
                 'lesion_points': lesion_points,
+                'backend_model_confidence': backend_model_confidence,
                 'yolo_detections': yolo_inference_data,
-                'confidence': backend_model_confidence,
-                'model_used': backend_model_name,
-                'class_name': predicted_class_name
+                'model_used': backend_model_name
             },
             'timestamp': datetime.now()
         })
-        print("✅ [MongoDB 저장 완료]")
 
         return jsonify({
             'message': '이미지 업로드 및 마스킹 성공',
-            'original_image_path': f"/uploads/camera/{base_name}",
             'image_url': f"/processed_uploads/camera/{base_name}",
+            'original_image_path': f"/uploads/camera/{base_name}",  # ✅ 이 줄 추가!
             'inference_data': {
-                'confidence': backend_model_confidence,
+                'details': lesion_points,
+                'prediction': 'Objects detected',
+                'backend_model_confidence': backend_model_confidence,
                 'model_used': backend_model_name,
-                'lesion_points': lesion_points,
-                'class_name': predicted_class_name
+                'yolo_detections': yolo_inference_data
             }
         }), 200
 
     except Exception as e:
-        print(f"❌ [서버 처리 중 예외] {str(e)}")
         return jsonify({'error': f'서버 처리 중 오류 발생: {str(e)}'}), 500

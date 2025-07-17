@@ -36,6 +36,7 @@ def signup():
     birth = data.get('birth')
     phone = data.get('phone')
 
+
     if not all([register_id, password, name, gender, birth, phone]):
         return jsonify({"message": "모든 필드를 입력해야 합니다."}), 400
 
