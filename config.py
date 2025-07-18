@@ -22,7 +22,14 @@ class DevelopmentConfig:
     # 보안 키
     SECRET_KEY = os.getenv('SECRET_KEY') or 'default_fallback_key'
 
-    # 이미지 업로드 경로
-    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads')
-    PROCESSED_UPLOAD_FOLDER = os.path.join(os.getcwd(), 'processed_uploads')
+    # ✅ 이미지 저장 경로 (images 하위로 정리)
+    BASE_DIR = os.getcwd()
+    IMAGE_BASE_DIR = os.path.join(BASE_DIR, 'images')
+
+    UPLOAD_FOLDER_ORIGINAL = os.path.join(IMAGE_BASE_DIR, 'original')
+    PROCESSED_FOLDER_MODEL1 = os.path.join(IMAGE_BASE_DIR, 'model1')
+    PROCESSED_FOLDER_MODEL2 = os.path.join(IMAGE_BASE_DIR, 'model2')
+    PROCESSED_FOLDER_MODEL3 = os.path.join(IMAGE_BASE_DIR, 'model3')
+
+    # 허용 확장자
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}

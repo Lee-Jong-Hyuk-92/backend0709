@@ -89,7 +89,7 @@ def doctor_reply():
         consult.doctor_comment = comment
         consult.reply_datetime = reply_datetime
         consult.is_replied = 'Y'
-        consult.is_requested = 'N'
+        consult.is_requested = 'Y'
         db.session.commit()
         return jsonify({'message': 'Reply submitted'}), 200
 
