@@ -132,12 +132,19 @@ def consult_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-# ✅ 5. 진료 신청 리스트 조회 (의사용) - 🔁 이름 포함으로 개선
+# ✅ 5. 진료 신청 리스트 조회 (의사용) - 🔁 오늘 날짜로 필터링 추가
 @consult_bp.route('/list', methods=['GET'])
 def list_consult_requests():
     try:
-        consults = ConsultRequest.query.filter_by(is_requested='Y') \
-            .order_by(ConsultRequest.request_datetime.desc()).all()
+        today = datetime.now().date()
+        start = datetime.combine(today, datetime.min.time())
+        end = datetime.combine(today, datetime.max.time())
+
+        consults = ConsultRequest.query.filter(
+            ConsultRequest.is_requested == 'Y',
+            ConsultRequest.request_datetime >= start,
+            ConsultRequest.request_datetime <= end
+        ).order_by(ConsultRequest.request_datetime.desc()).all()
 
         result = []
         for consult in consults:
@@ -145,13 +152,14 @@ def list_consult_requests():
             result.append({
                 'request_id': consult.id,
                 'user_id': consult.user_id,
-                'user_name': user.name if user else '',  # ✅ 이름 포함
+                'user_name': user.name if user else '',
                 'image_path': consult.image_path,
                 'request_datetime': consult.request_datetime.strftime('%Y-%m-%d %H:%M:%S') \
                     if isinstance(consult.request_datetime, datetime) else consult.request_datetime,
                 'is_replied': consult.is_replied
             })
-        print(f"👀 반환 리스트 길이: {len(result)}")
+
+        print(f"📅 오늘 신청 반환: {len(result)}개")
         return jsonify({'consults': result}), 200
 
     except Exception as e:

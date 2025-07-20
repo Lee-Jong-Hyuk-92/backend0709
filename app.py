@@ -16,7 +16,7 @@ from routes.consult_routes import consult_bp
 # from routes.chatbot_routes import chatbot_bp # 챗봇 기능이 app.py에 직접 구현되므로 이 블루프린트는 임포트하지 않음 (삭제하거나 주석 처리)
 
 # ✅ Gemini API 관련 임포트
-from google.generativeai import configure, GenerativeModel, list_models # list_models 임포트 추가
+# from google.generativeai import configure, GenerativeModel, list_models # list_models 임포트 추가
 
 # ✅ 환경 변수에서 API 키 로드
 from dotenv import load_dotenv
@@ -165,4 +165,4 @@ def internal_error(error):
 # 서버 실행
 if __name__ == '__main__':
     # 디버그 모드에서 개발용으로만 사용하고, 프로덕션에서는 Gunicorn 등 WSGI 서버를 사용 권장
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='127.0.0.1', port=5000)

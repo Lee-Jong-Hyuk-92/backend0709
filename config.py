@@ -23,7 +23,7 @@ class DevelopmentConfig:
     SECRET_KEY = os.getenv('SECRET_KEY') or 'default_fallback_key'
 
     # ✅ 이미지 저장 경로 (images 하위로 정리)
-    BASE_DIR = os.getcwd()
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # ✅ 현재 파일 기준으로 고정
     IMAGE_BASE_DIR = os.path.join(BASE_DIR, 'images')
 
     UPLOAD_FOLDER_ORIGINAL = os.path.join(IMAGE_BASE_DIR, 'original')
